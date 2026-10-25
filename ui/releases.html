@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>OH Releases</title>
+    <!--
+      主题接管：宿主把主题名与外观通过 URL 参数传进来，并给出主题 CSS 的地址。
+      不接这一段，页面里所有 var(--bg) / var(--text) / var(--accent) 都是空值，
+      只能落到各自写死的 fallback 上——换主题时页面不跟着变。
+
+      三件事：
+        · hana-theme            → <html data-theme="…">
+        · hana-theme-appearance → <html data-appearance="light|dark">
+        · hana-css 或按主题名去取 → 插入主题样式表
+      放在 <head> 里同步执行，避免先出一帧无色再刷成主题色的闪动。
+    -->
+    <script>
+      (function () {
+        "use strict";
+        var root = document.documentElement;
+        var params = null;
+        try {
+          params = new URLSearchParams(location.search);
+        } catch (error) {
+          params = null;
+        }
+        var read = function (key) {
+          try {
+            return params ? String(params.get(key) || "").trim() : "";
+          } catch (error) {
+            return "";
+          }
+        };
+        try {
+          var theme = read("hana-theme");
+          var appearance = read("hana-theme-appearance");
+          var css = read("hana-css");
+          if (!css && theme) css = "/api/apps/theme.css?theme=" + encodeURIComponent(theme);
+          if (theme) root.setAttribute("data-theme", theme);
+          if (appearance === "light" || appearance === "dark") {
+            root.setAttribute("data-appearance", appearance);
+          }
+          if (css) {
+            var link = document.createElement("link");
+            link.rel = "stylesheet";
+            link.href = css;
+            link.setAttribute("data-hana-theme-inline", "");
+            (document.head || root).appendChild(link);
+            root.setAttribute("data-hana-theme-css", css);
+          }
+        } catch (error) {
+          // 主题接不上就用手写 fallback，不因为这一段落空整页。
+        }
+      })();
+    </script>
+    <link rel="stylesheet" href="./releases.bundle.css" />
+  </head>
+  <!--
+    卡面由宿主裁四个角，所以 body 与 #root 必须直接铺满、不套任何带 max-width /
+    margin / padding 的外壳：#root 若有留白，被裁掉的角上就会露出浅色底边。
+    标题、页眉这些东西都由页面脚本自己渲染在最外层卡片里。
+  -->
+  <body class="hs-page">
+    <div id="root"></div>
+    <script type="module" src="./releases.bundle.js"></script>
+  </body>
+</html>

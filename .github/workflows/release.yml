@@ -1,0 +1,138 @@
+# Release — push tag v* 时出包并发布
+#
+# 这个仓库在 GitHub 上开了 immutable release：发布之后资产不可改、不可删、不可覆盖。
+# 所以这里的顺序是硬性的：
+#
+#   1. 建 draft（draft 阶段资产仍可增删）
+#   2. 把包传完
+#   3. 回头核对资产齐了
+#   4. 最后一步才去 draft
+#
+# 反过来做（先发布再传资产）在 immutable 下会直接失败，而且没有补救余地：
+# 既不能补传也不能重发同名 release。任何一步失败，release 留在 draft，修完重跑即可。
+#
+# 不用 gh release upload --clobber：immutable 下它会失败。draft 里本来就不需要覆盖。
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: ".nvmrc"
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Check
+        run: node scripts/check-type.mjs
+
+      - name: Build
+        run: node scripts/build-app.mjs
+
+      - name: Pack
+        run: node scripts/pack.mjs
+
+      # tag 是 v0.1.0 而 manifest 写着别的版本，发出去的包装着错版本号。
+      # 放在出包之后拦：manifest 的版本由 build 从源读入 dist。
+      - name: Verify tag matches manifest version
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          set -e
+          TAG="${GITHUB_REF_NAME#v}"
+          MANIFEST=$(node -p "JSON.parse(require('fs').readFileSync('dist/manifest.json','utf8')).version")
+          echo "tag = $TAG / manifest = $MANIFEST"
+          if [ "$TAG" != "$MANIFEST" ]; then
+            echo "::error::tag $TAG 与 manifest 版本 $MANIFEST 不一致"
+            exit 1
+          fi
+
+      # 建 draft 并传包。draft 阶段资产可增删，这是 immutable 下唯一安全的窗口。
+      - name: Create draft release with assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          FILES=(releases/*.zip releases/*.sha256)
+          if [ ${#FILES[@]} -eq 0 ]; then
+            echo "::error::没有找到待发布的产物"
+            exit 1
+          fi
+          printf '待上传：%s\n' "${FILES[@]}"
+
+          # 已经存在就只补资产（draft 允许），已发布则直接失败——
+          # immutable 下改不了，也不该悄悄跳过。
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            DRAFT=$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json isDraft --jq '.isDraft')
+            if [ "$DRAFT" != "true" ]; then
+              echo "::error::release $TAG 已发布且仓库开了 immutable，无法再改资产"
+              exit 1
+            fi
+            echo "draft $TAG 已存在，补传资产"
+            gh release upload "$TAG" "${FILES[@]}" --repo "$GITHUB_REPOSITORY"
+          else
+            gh release create "$TAG" "${FILES[@]}" \
+              --repo "$GITHUB_REPOSITORY" \
+              --draft \
+              --title "$TAG" \
+              --generate-notes
+          fi
+
+      # 去 draft 之前先核资产：这一步失败时 release 还是 draft，可以修完重跑。
+      - name: Verify assets before publishing
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name' > /tmp/assets.txt
+          cat /tmp/assets.txt
+
+          ZIP=$(ls releases/*.zip | head -n1 | xargs basename)
+          SHA="$ZIP.sha256"
+          for want in "$ZIP" "$SHA"; do
+            if ! grep -qxF "$want" /tmp/assets.txt; then
+              echo "::error::release 里缺资产 $want"
+              exit 1
+            fi
+          done
+
+      # 最后一步：去 draft。之后资产在 immutable 下不可改。
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false
+          INFO=$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json isDraft,assets)
+          echo "$INFO"
+          echo "$INFO" | node -e '
+            let s = "";
+            process.stdin.on("data", (c) => (s += c)).on("end", () => {
+              const r = JSON.parse(s);
+              if (r.isDraft) { console.error("::error::release 仍是 draft"); process.exit(1); }
+              if (!r.assets || r.assets.length === 0) { console.error("::error::release 没有资产"); process.exit(1); }
+              console.log("已发布，资产 " + r.assets.length + " 个");
+            });
+          '

@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 597 1063" width="597" height="1063" role="img" aria-label="OH Releases">
+  <defs>
+    <linearGradient id="cv-bg" x1="0" y1="0" x2="0.6" y2="1">
+      <stop offset="0" stop-color="#7a5236"/>
+      <stop offset="0.55" stop-color="#4e2f18"/>
+      <stop offset="1" stop-color="#2c1a0c"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="597" height="1063" fill="url(#cv-bg)"/>
+
+  <!-- 顶部柔光，让画面不平 -->
+  <circle cx="470" cy="150" r="260" fill="#f0a868" opacity="0.08"/>
+
+  <!-- 主箭头：从上方落下 -->
+  <g transform="translate(298 250)">
+    <path d="M0 0 L0 132" fill="none" stroke="#fff6ec" stroke-width="34" stroke-linecap="round"/>
+    <polygon points="-56 118, 56 118, 0 208" fill="#fff6ec"/>
+    <path d="M-104 262 L104 262" fill="none" stroke="#f0a868" stroke-width="30" stroke-linecap="round"/>
+  </g>
+
+  <!-- 版本栈：三条横片，最上那条最亮，读作版本 -->
+  <g transform="translate(104 588)">
+    <rect x="0" y="176" width="389" height="56" rx="28" fill="#5c3a21"/>
+    <rect x="0" y="92" width="389" height="56" rx="28" fill="#8d6142"/>
+    <rect x="0" y="0" width="389" height="66" rx="33" fill="#f6e3cd"/>
+  </g>
+</svg>

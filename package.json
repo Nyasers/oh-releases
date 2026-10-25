@@ -1,0 +1,32 @@
+{
+  "name": "oh-releases",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MPL-2.0",
+  "packageManager": "pnpm@11.28.5",
+  "type": "module",
+  "engines": {
+    "node": "^22.23.4 || ^24.22.1 || ^26.12.1"
+  },
+  "scripts": {
+    "sync:sdk": "node scripts/sync-sdk.mjs",
+    "build": "node scripts/build-app.mjs",
+    "build:ui": "node scripts/build-ui.mjs",
+    "check": "node scripts/check-type.mjs && node scripts/build-app.mjs",
+    "test:backfill": "node scripts/sim-backfill.mjs",
+    "test:download": "node scripts/sim-download.mjs",
+    "pack": "node scripts/pack.mjs",
+    "install:local": "node scripts/install-local.mjs"
+  },
+  "devDependencies": {
+    "@hana/app-sdk": "file:vendor/hana-app-sdk/hana-app-sdk.tgz",
+    "@hana/plugin-components": "file:vendor/hana-app-sdk/hana-plugin-components-0.0.0.tgz",
+    "@hana/plugin-protocol": "file:vendor/hana-app-sdk/hana-plugin-protocol-0.0.0.tgz",
+    "@hana/plugin-sdk": "file:vendor/hana-app-sdk/hana-plugin-sdk-0.0.0.tgz",
+    "@rspack/core": "^2.2.3",
+    "acorn": "^8.19.0",
+    "acorn-walk": "^8.3.5",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  }
+}

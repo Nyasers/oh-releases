@@ -1,0 +1,111 @@
+# CI — 每次 push 与 PR 都跑：静态检查、构建、出包、校验交付面
+#
+# 交付物是纯 JS + node: 内建模块，与平台无关，所以不设矩阵：一个 runner 出包就够。
+# 注意这一层测不出宿主里的真实行为（权限、运行时拉起、通知），那些只能在宿主里验；
+# 这里拦的是语法、未声明变量、manifest 契约、交付树里混进多余文件这类会立刻炸掉的问题。
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+# 同一分支的新提交取消上一轮：构建是幂等的，没必要排队烧分钟数。
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    # 钉版本而不是 ubuntu-latest：镜像换代是 GitHub 侧的静默变化，CI 要可复现的地基。
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+
+    steps:
+      # manifest.id 必须与仓库目录名一致（check-type 会校验），checkout 默认就用仓库名，
+      # 所以这里不指定 path。
+      - uses: actions/checkout@v5
+
+      # pnpm 版本由 package.json 的 packageManager 决定（corepack 读它）。
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: ".nvmrc"
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      # vendor 里的四个 tgz 是构建期依赖，漂了会让产物与声明不符。
+      - name: Verify vendored SDK
+        run: |
+          set -e
+          test -f vendor/hana-app-sdk/hana-app-sdk.tgz
+          node -e '
+            const j = require("./vendor/hana-app-sdk/source-manifest.json");
+            if (typeof j.packedVersion !== "string" || !j.packedVersion) {
+              console.error("::error::vendor/hana-app-sdk/source-manifest.json 缺 packedVersion");
+              process.exit(1);
+            }
+            console.log("vendored SDK packedVersion = " + j.packedVersion);
+          '
+
+      # 语法、import 解析、未声明变量、manifest 契约。tsc 未装时明确 skipped。
+      - name: Check
+        run: node scripts/check-type.mjs
+
+      # build 里带断言：entry / icon / 卡路由必须真实存在，交付树不许混进源码与开发件。
+      - name: Build
+        run: node scripts/build-app.mjs
+
+      - name: Pack
+        run: node scripts/pack.mjs
+
+      # 出包自检：zip 与 .sha256 都在，根级有 manifest.json，entry/icon 都在包里，
+      # 且 .sha256 与 zip 实际摘要一致。
+      - name: Verify package layout
+        run: |
+          set -e
+          ZIP=$(ls releases/*.zip | head -n1)
+          test -n "$ZIP"
+          echo "zip = $ZIP"
+
+          test -s "$ZIP"
+          test -s "$ZIP.sha256"
+
+          # zip 根级必须有 manifest.json，不能套一层目录（宿主就在根级找它）。
+          if ! unzip -l "$ZIP" | grep -qE ' manifest\.json$'; then
+            echo "::error::$ZIP 根级没有 manifest.json"
+            exit 1
+          fi
+          # 入口与图标：两者都写在 manifest 里，缺任何一个宿主都会拒装。
+          ENTRY=$(node -p "JSON.parse(require('fs').readFileSync('manifest.json','utf8')).entry")
+          ICON=$(node -p "JSON.parse(require('fs').readFileSync('manifest.json','utf8')).icon")
+          for f in "$ENTRY" "$ICON"; do
+            if ! unzip -l "$ZIP" | grep -qE " ${f//\//\\/}$"; then
+              echo "::error::$ZIP 里没有 manifest 声明的 $f"
+              exit 1
+            fi
+          done
+
+          # 摘要文件必须与 zip 对得上，否则发出去的是坏引用。
+          EXPECT=$(tr -d '[:space:]' < "$ZIP.sha256")
+          ACTUAL=$(sha256sum "$ZIP" | cut -d' ' -f1)
+          if [ "$EXPECT" != "$ACTUAL" ]; then
+            echo "::error::.sha256 与 zip 实际摘要不符：$EXPECT vs $ACTUAL"
+            exit 1
+          fi
+          echo "摘要一致：$ACTUAL"
+
+      - uses: actions/upload-artifact@v5
+        with:
+          name: package
+          # 保留 14 天够一轮发版周期；要长期留存就去 Release。
+          retention-days: 14
+          path: |
+            releases/*.zip
+            releases/*.sha256
+          if-no-files-found: error

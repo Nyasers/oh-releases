@@ -1,0 +1,24 @@
+# 构建产出与本地包装：不入库，每轮由 scripts/build-app.mjs 整体重建。
+dist/
+releases/
+
+# 依赖与包管理缓存
+node_modules/
+
+# 临时探针与一次性脚本：写到 .tmp/，用完删掉。
+.tmp/
+
+# 宿主的受管运行时用它当子进程 TMPDIR，与本仓库无关，列在这里只防误提交。
+.runtime-tmp/
+
+# 宿主的工作树与本地状态：属于开发机，不是仓库内容。
+.hana/
+
+# 提审用的临时提交说明。
+.msg.txt
+
+# 模拟下载的落盘目录（scripts/sim-download.mjs 用）
+fake-data/
+
+# TMP/TEMP 未设时 os.tmpdir() 会返回 “undefined\temp”，脚本因此误建在这里
+undefined/

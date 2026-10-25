@@ -1,0 +1,412 @@
+/* ==========================================================================
+   设置视图（oh-releases 主页的第二个视图）的样式。
+   --------------------------------------------------------------------------
+   它嵌在主页卡里，不是独立页面：四角与宽度容器归外层 .or-card / .or-set-body 管，
+   这里只负责设置页自己那些块：提示条、镜像行、保存条。
+   外层版心与左右留白由 releases.css 的 .or-set-view 给。
+   ========================================================================== */
+
+/* SettingsPage 自己那一层：宽度跟版心，高度交给内容。 */
+.or-set-root {
+  width: 100%;
+  height: auto;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  overflow: visible;
+}
+
+.or-set-state {
+  display: grid;
+  place-items: center;
+  gap: var(--hs-space-12);
+  padding: var(--hs-space-28) var(--hs-space-18);
+  text-align: center;
+}
+
+/* ── 提示条 ───────────────────────────────────────────────────────── */
+.or-set-notice {
+  display: grid;
+  gap: var(--hs-space-5);
+  padding: var(--hs-space-12) var(--hs-space-14);
+  border-radius: calc(5px * var(--corner-radius-scale));
+  background: var(--accent-light);
+  font-size: 13px;
+  line-height: 1.75;
+  color: var(--text-light);
+}
+
+.or-set-notice--warn {
+  background: color-mix(in srgb, var(--hs-warn-ink) 12%, var(--bg));
+  color: var(--text);
+}
+
+.or-set-notice--error {
+  background: color-mix(in srgb, var(--danger, #9b534b) 8%, var(--bg));
+  color: var(--text);
+}
+
+.or-set-notice__title {
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.6;
+  color: var(--text);
+}
+
+.or-set-notice__body {
+  display: grid;
+  gap: var(--hs-space-4);
+}
+
+.or-set-notice__body p {
+  margin: 0;
+}
+
+.or-set-notice__action {
+  margin-top: var(--hs-space-6);
+}
+
+/* ── 下载目录 ─────────────────────────────────────────────────────── */
+/* 输入框吃掉剩下的宽度，“选择”只占自己那份。 */
+.or-set-dirinput {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* ── 下载源 ───────────────────────────────────────────────────────── */
+/* 当前值是一行代码块，右边跟操作按钮。 */
+.or-source-view {
+  display: flex;
+  align-items: center;
+  gap: var(--hs-space-8);
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.or-source-view .or-set-mono {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* 编辑态：输入框一行，按钮一行。 */
+.or-source-edit {
+  display: grid;
+  gap: var(--hs-space-8);
+  min-width: 0;
+}
+
+.or-source-error {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--danger, #9b534b);
+  overflow-wrap: anywhere;
+}
+
+/* ── 自动下载的多选列表 ───────────────────────────────────────────── */
+/* 一行一个后缀。整行是点击面，勾选框只是它的视觉标记。 */
+.or-assetlist {
+  display: grid;
+  gap: var(--hs-space-2);
+  min-width: 0;
+}
+
+/* 分组标题：安装包 / 压缩包。与下载页那套三组平行，顺序固定。 */
+.or-assetlist__group {
+  display: grid;
+  gap: var(--hs-space-2);
+  min-width: 0;
+}
+
+.or-assetlist__group + .or-assetlist__group {
+  margin-top: var(--hs-space-10);
+}
+
+.or-assetlist__grouphead {
+  display: flex;
+  align-items: baseline;
+  gap: var(--hs-space-6);
+  padding: 0 var(--hs-space-10) var(--hs-space-2);
+}
+
+.or-assetlist__grouptitle {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.or-assetlist__groupcount {
+  font-size: 11.5px;
+  color: var(--text-light);
+}
+
+.or-assetlist__grouphint {
+  font-size: 11.5px;
+  color: var(--text-light);
+}
+
+.or-assetlist__row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--hs-space-8);
+  padding: var(--hs-space-6) var(--hs-space-10);
+  border-radius: calc(4px * var(--corner-radius-scale, 1));
+  cursor: pointer;
+  background: transparent;
+  transition: background 120ms ease;
+}
+
+.or-assetlist__row:hover {
+  background: color-mix(in srgb, var(--sidebar-bg) 55%, var(--bg));
+}
+
+.or-assetlist__row--on {
+  background: var(--accent-light);
+}
+
+.or-assetlist__check {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  accent-color: var(--accent, #52765c);
+  cursor: pointer;
+}
+
+.or-assetlist__name {
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.or-assetlist__meta {
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--text-light);
+  white-space: nowrap;
+}
+
+/* 大小右对齐、等宽，让一列数字能纵向对齐。 */
+.or-assetlist__size {
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--text-light);
+  white-space: nowrap;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  min-width: 4.5em;
+}
+
+/* 勾了但本版没发这一项：不能隐藏（用户会以为配置被删），只能标记。 */
+.or-assetlist__row--missing .or-assetlist__name {
+  color: var(--text-light);
+}
+
+.or-set-muted {
+  font-size: 12.5px;
+  color: var(--text-light);
+}
+
+/* 检查间隔的四档。宽度跟满控件区，标签不换行也不被挤扁。 */
+.or-interval-tabs {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  width: 100%;
+  height: auto;
+  flex: 0 0 auto;
+}
+
+.or-interval-tabs > * {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.or-interval-tabs [role="tab"],
+.or-interval-tabs button {
+  white-space: nowrap;
+}
+
+.or-set-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12.5px;
+  line-height: 1.7;
+  padding: var(--hs-space-3) var(--hs-space-7);
+  border-radius: calc(4px * var(--corner-radius-scale, 1));
+  background: color-mix(in srgb, var(--sidebar-bg) 55%, var(--bg));
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+/* ── 镜像行 ───────────────────────────────────────────────────────── */
+.or-mirror {
+  display: grid;
+  gap: var(--hs-space-6);
+  padding: var(--hs-space-12) var(--hs-space-14);
+  border: 1px solid var(--border);
+  border-radius: calc(5px * var(--corner-radius-scale));
+  background: var(--bg);
+}
+
+.or-mirror__head {
+  display: flex;
+  align-items: center;
+  gap: var(--hs-space-6);
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.or-mirror__index {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  flex: none;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--sidebar-bg) 55%, var(--bg));
+  color: var(--text-light);
+  font-size: 11.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.or-mirror__when {
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--text-muted);
+}
+
+.or-mirror__spacer {
+  flex: 1 1 auto;
+  min-width: var(--hs-space-4);
+}
+
+.or-mirror__foot {
+  display: flex;
+  align-items: center;
+  gap: var(--hs-space-8);
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.or-mirror__hint {
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--text-muted);
+}
+
+.or-mirror__id {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--text-muted);
+  opacity: 0.75;
+}
+
+.or-mirror__status {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11.5px;
+  line-height: 1.7;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+
+.or-set-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--hs-space-10);
+  flex-wrap: wrap;
+}
+
+.or-set-dirty {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--hs-warn-ink);
+}
+
+/* ── 保存失败 ─────────────────────────────────────────────────────── */
+.or-set-error {
+  display: grid;
+  gap: var(--hs-space-4);
+  padding: var(--hs-space-12) var(--hs-space-14);
+  border-radius: calc(5px * var(--corner-radius-scale));
+  background: color-mix(in srgb, var(--danger, #9b534b) 8%, var(--bg));
+  font-size: 13px;
+  line-height: 1.75;
+  color: var(--text);
+}
+
+.or-set-error__title {
+  font-weight: 600;
+}
+
+.or-set-error__field {
+  font-size: 12px;
+  color: var(--text-light);
+}
+
+.or-set-error__body {
+  color: var(--text-light);
+  overflow-wrap: anywhere;
+}
+
+/* ── 行距 ─────────────────────────────────────────────────────────── */
+/*
+ * SettingsStack 的 gap（SDK 的 .xc 档）属于通用间距，全局改会连带影响别处，
+ * 所以在自己的容器上加一个类，只收设置页这一处。
+ *
+ * 原先行距是 40px：gap 16 加上行自带的上下 padding 12×2。一条条排下来
+ * 显得飘，且相邻两项看不出归属。收成 8 + 4×2 = 16px。
+ * 只碰行本身（.o 是 SettingsRow 的基类），不去动列表等其他块。
+ */
+.or-set-root .or-set-stack {
+  gap: var(--hs-space-8);
+}
+
+.or-set-root .or-set-stack > .o {
+  padding-top: var(--hs-space-4);
+  padding-bottom: var(--hs-space-4);
+}
+
+/* ── 区块间距 ─────────────────────────────────────────────────────── */
+/*
+ * SettingsSection 渲染的是 <section>，自带 margin-bottom: 40px；外层 SettingsStack
+ * 又给一重 gap。两重叠在一起就是截图里那两条宽空带。
+ *
+ * 把 Section 自带的下边距收掉，间距只由外层 gap 管：一处定义一处生效。
+ */
+.or-set-root > * > section,
+.or-set-root section {
+  margin-bottom: 0;
+}
+
+/* 自动保存那一行状态：不是表单项，紧跟在最后一项后面。 */
+.or-set-savehint-row {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: var(--hs-space-4);
+}
+
+.or-set-savehint {
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--text-light);
+}
+
+.or-set-savehint--error {
+  color: var(--danger, #9b534b);
+}
+
+/* ── 窄屏 ─────────────────────────────────────────────────────────── */
+@media (max-width: 520px) {
+  .or-mirror__head {
+    row-gap: var(--hs-space-4);
+  }
+
+  .or-mirror__spacer {
+    flex-basis: 100%;
+    height: 0;
+  }
+}

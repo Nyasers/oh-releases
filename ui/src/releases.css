@@ -1,0 +1,888 @@
+/* ==========================================================================
+   更新卡（oh-releases）的页面样式。
+   --------------------------------------------------------------------------
+   卡面由宿主裁四个角，所以这里有一条硬规矩：
+     · html / body / 最外层 wrapper —— 正方形、四边涂满、**不要**圆角、描边、外边距
+     · 只有内层块（面板、图片、徽标）才允许圆角
+   最外层一旦带 border-radius 或 margin，被裁掉的四个角就会露出底色，看上去像白边。
+
+   布局用「上状态条 + 中滚动 + 下翻页条」三段的 flex 列：
+   正文再长也只在中间滚，翻页按钮永远留在卡面底部。
+   ========================================================================== */
+
+/* html 与 body 的底色、字体由 page.css 统一给；这里只负责"铺满且方形"。 */
+html,
+body.hs-page {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+#root,
+#root .or-host {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  /* 壳页上原本的 hs-copy 会带来正文字号与颜色，这里归位。 */
+  font-size: inherit;
+  line-height: inherit;
+  color: inherit;
+}
+
+/* ── 最外层：三段竖直布局 ─────────────────────────────────────────── */
+.or-card {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: var(--bg);
+  overflow: hidden;
+  /* 内容区宽度。单栏就按正文可读宽度收窄，分栏时放寛到装得下两栏。
+     版本头、正文、数据来源都读这一个值，三者才能左右对齐。 */
+  --or-w: 760px;
+  /* 分栏按卡片自身宽度判断，不按视口：侧栏（功能面板）开合时，卡片
+     实际可用宽度会变，而视口不变。 */
+  container-type: inline-size;
+  container-name: or-card;
+}
+
+/* ── 顶部状态条：版本计数、回填状态、上次检查 ─────────────────────── */
+.or-head {
+  flex: none;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+}
+
+/* 顶栏文字与正文同一条版心：边框铺满整卡，内层才收窄。
+   与 .or-source 是同一套双层做法。 */
+.or-head__inner {
+  display: grid;
+  gap: var(--hs-space-8);
+  max-width: var(--or-w);
+  margin: 0 auto;
+  padding: var(--hs-space-14) var(--hs-space-18);
+}
+
+.or-head__eyebrow {
+  display: flex;
+  align-items: center;
+  gap: var(--hs-space-8);
+  min-width: 0;
+}
+
+.or-head__title {
+  font-family: var(--font-ui);
+  font-size: 19px;
+  line-height: 1.3;
+  font-weight: 600;
+  margin: 0;
+  color: var(--accent);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  /* 标题行只剩标题与同步徽标；窄卡时先缩标题，徽标不换行。 */
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+/* 视图导航：靠最右。 */
+.or-head__views {
+  flex: none;
+  display: flex;
+  align-items: center;
+}
+
+/* 动作与导航合成一组靠右：左边读数多长都不会把它们顶动。 */
+.or-head__tools {
+  margin-inline-start: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--hs-space-8);
+  flex: none;
+}
+
+.or-head__meta {
+  display: flex;
+  align-items: center;
+  gap: var(--hs-space-8);
+  flex-wrap: wrap;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text);
+  opacity: 0.82;
+  min-width: 0;
+}
+
+/* 操作按钮在工具组里靠左，导航跟其后。 */
+.or-head__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--hs-space-6);
+  flex: none;
+}
+
+/* 定时检查出问题的那个读数：它是第二行里唯一需要被注意的东西。 */
+.or-head__warn {
+  color: var(--hs-warn-ink);
+}
+
+/* ── 中间滚动区 ───────────────────────────────────────────────────── */
+.or-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  /* 隐藏滚动条，但保留滚动：内容不动时没有条，动起来也不占宽。 */
+  scrollbar-width: none;
+}
+
+.or-body::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+/*
+ * 设置视图的滚动层。
+ *
+ * 和 .or-body 同一个职责（吃掉剩余高度、自己滚），但不参和版本视图的两栏布局：
+ * 分栏的容器查询只认 .or-body 那几层，设置是一列，不应跟着变宽或分栏。
+ */
+.or-set-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+}
+
+.or-set-body::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+.or-inner {
+  padding: 0 var(--hs-space-18) var(--hs-space-20);
+  max-width: var(--or-w);
+  margin: 0 auto;
+}
+
+/*
+ * 设置视图的容器。
+ *
+ * 滚动统一由外层 .or-set-body 管，这里只管版心。宽度不跟版本视图的 --or-w 走：
+ * 那是正文写作宽度（宽屏会抬到 1180px 给两栏），设置是一列表单，太宽反而难扫。
+ */
+.or-set-view {
+  padding: var(--hs-space-18) var(--hs-space-18) 0;
+  max-width: 760px;
+  margin: 0 auto;
+  box-sizing: border-box;
+  /* 切到设置/下载时给一点入场：版本页有逐条入场，这里硬切会显得突兵。 */
+  animation: or-arrive 0.3s ease-out both;
+}
+
+/*
+ * 设置页的分组、下载页的任务卡逐条进场。
+ *
+ * 只做前几项：列表可能很长，全部错开会让最后一行等很久，
+ * 而用户已经滚到那里了。
+ */
+.or-set-view > * {
+  animation: or-arrive 0.34s ease-out both;
+}
+.or-set-view > *:nth-child(2) {
+  animation-delay: 0.04s;
+}
+.or-set-view > *:nth-child(3) {
+  animation-delay: 0.08s;
+}
+.or-set-view > *:nth-child(4) {
+  animation-delay: 0.12s;
+}
+
+/* 用户把动效关掉时就不放。 */
+@media (prefers-reduced-motion: reduce) {
+  .or-set-view,
+  .or-set-view > * {
+    animation: none;
+  }
+}
+
+/* 版本头与摘要：卡片里的固定区，不在滚动区里。
+   它和资产栏不会在同一个滚动层里争位置，也就不会互相遮挡。 */
+.or-pinned {
+  flex: none;
+  background: var(--bg);
+}
+
+/* 内边距和宽度都放内层，与 .or-inner 一致，两边左右边缘才能对齐。 */
+.or-pinned__inner {
+  max-width: var(--or-w);
+  margin: 0 auto;
+  padding: var(--hs-space-18) var(--hs-space-18) var(--hs-space-12);
+}
+
+/* 变更条目：跟着 .or-body 滚。 */
+.or-scroll {
+  min-width: 0;
+}
+
+/*
+ * 小节标题冻结，不分栏时也一样：滚动时标题停在顶部，只有条目走。
+ *
+ * 单栏时 .or-body 就是滚动容器，分栏时换成左右两栏各自滚，两层都好使。
+ *
+ * 底下那道缝：.hs-section-head 自带 margin-bottom，而 sticky 元素的背景
+ * 不覆盖 margin 区，内容会从这条缝里透出来。所以把下边距改成内边距。
+ */
+.or-main .hs-section > .hs-section-head,
+.or-assets-aside > .hs-section-head {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  margin-bottom: 0;
+  padding-bottom: var(--hs-space-12);
+  background: var(--bg);
+}
+
+/*
+ * 资产里的分组标题（安装包 / 压缩包 / 清单）也钉，但只吸附在上层表头
+ * 下面：它们共用一个 top，后到的会顶掉先到的，滚动时总能看到当前在哪个组。
+ * 偏移 36px = 标题行 24px（16px × 1.5）+ 12px 下内边距。
+ */
+.or-assets-aside .or-asset-group__head {
+  position: sticky;
+  top: 36px;
+  z-index: 1;
+  margin-bottom: 0;
+  padding-block: var(--hs-space-6);
+  background: var(--bg);
+}
+
+/*
+ * 内容区够宽时把「资产」提到右侧成一栏，版本头横跨两栏。
+ *
+ * 版本说明是纵向长文，附件清单是短行列表；并排后两者都能少滚一段。
+ *
+ * 断点按 .or-body 自身宽度（容器查询），不按视口：侧栏展开时主区会变窄，
+ * 那时即使视口很宽也不该分栏。
+ *
+ * 阈值是两个自身尺寸相加，不是估的：
+ *   左栏要放住单栏时的正文宽度   760px（--or-w 的默认值，不含 padding）
+ *   右栏至少放得下文件名       300px（grid 里资产的 min 宽度）
+ *   中缝                         24px
+ *   → 760 + 24 + 300 = 1084px。
+ * 低于这个宽度就退成单栏，两边都不会被挤。
+ */
+@container or-card (min-width: 1084px) {
+  /* 容器查询不能命中容器自身，所以变量定在四个直接子元素上，再向下继承。 */
+  .or-body,
+  .or-pinned,
+  .or-source,
+  .or-head {
+    --or-w: 1180px;
+  }
+
+  /*
+   * 分栏后不再由 .or-body 统一滚：两栏各自成滚动容器，各自滚各自的。
+   * 内容一屏放得下时两边都不动；哪边超出就只动哪边。
+   * .or-body 不再滚动，只当尺寸参照，.or-inner 撑满它。
+   */
+  .or-body {
+    overflow: hidden;
+  }
+
+  .or-inner {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 340px);
+    grid-template-areas:
+      "version assets"
+      "notes   assets";
+    /* 两栏都占满高度：它们各自是滚动容器，高度确定了 overflow 才会生效。
+       grid-template-rows 的第一行吃掉剩余高度，第二行跟内容。 */
+    grid-template-rows: minmax(0, 1fr) auto;
+    column-gap: var(--hs-space-24);
+    /* 撑满 .or-body 的高度。 */
+    height: 100%;
+    box-sizing: border-box;
+  }
+
+  /* 摘要与变更在左栏，自己滚。 */
+  .or-inner > .or-main {
+    grid-area: version;
+    min-width: 0;
+    min-height: 0;
+    overflow-y: auto;
+    scrollbar-width: none;
+  }
+
+  /* 资产在右栏，自己滚。
+     不跟左栏一起动，也不整块 sticky：内容能一屏展示时就停在原地。 */
+  .or-inner > .or-assets-aside {
+    grid-area: assets;
+    min-width: 0;
+    min-height: 0;
+    overflow-y: auto;
+    scrollbar-width: none;
+    /* 跨两行，但要按内容排而不被拉伸；拉伸时 min-height:0 会把它压成
+       行高的一半，反而出现两条滚动条。 */
+    align-self: stretch;
+  }
+
+  .or-inner > .or-main::-webkit-scrollbar,
+  .or-inner > .or-assets-aside::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
+
+  /* 提示与来源那块放左栏底部，不占右栏。 */
+  .or-inner > .or-aside-notes {
+    grid-area: notes;
+    min-width: 0;
+  }
+}
+
+/* ── 数据来源：钉在卡底 ───────────────────────────────────────── */
+/*
+ * 常驻的低价值信息，不跟正文一起滚。
+ *
+ * 边框铺满整卡，文字跟正文左右对齐——宽度限制放在内层，与版本头
+ * 同一套双层面。不加底色：头部没底色，加了就不对称。
+ */
+.or-source {
+  flex: none;
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--text-muted);
+}
+
+.or-source__inner {
+  max-width: var(--or-w);
+  margin: 0 auto;
+  padding: var(--hs-space-8) var(--hs-space-18);
+  /* 标签与地址排一行，地址过长时在它自己身上截断。 */
+  display: flex;
+  align-items: baseline;
+  gap: var(--hs-space-4);
+  min-width: 0;
+}
+
+/* 剩下的那份文字只是标签，不缩放。 */
+.or-source__label {
+  flex: none;
+  color: var(--text-muted);
+}
+
+.or-source__url {
+  min-width: 0;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  user-select: text;
+}
+
+/* ── 整卡崩溃占位 ─────────────────────────────────────────────── */
+/* 页面自身出错时至少把原因写出来，不要留一片白。 */
+.or-crash {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: 100%;
+  padding: 24px 20px;
+  box-sizing: border-box;
+  justify-content: center;
+  background: var(--bg);
+}
+
+.or-crash__title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.or-crash__body {
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--danger);
+  word-break: break-word;
+  white-space: pre-wrap;
+  max-height: 40%;
+  overflow: auto;
+}
+
+.or-crash__hint {
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--text-muted);
+}
+
+.or-crash__btn {
+  align-self: flex-start;
+  margin-top: 4px;
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-card);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  color: var(--text);
+}
+
+/* ── 版本头 ───────────────────────────────────────────────────────── */
+.or-version {
+  display: grid;
+  gap: var(--hs-space-6);
+  margin-bottom: var(--hs-space-14);
+}
+
+.or-version__tag {
+  font-family: var(--font-ui);
+  font-size: 25px;
+  line-height: 1.25;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0;
+  overflow-wrap: anywhere;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* 回填时“刚长出来”的标记：淡入 + 轻微上浮，四秒后消失。 */
+.or-version__new {
+  font-size: 10.5px;
+  font-weight: 500;
+  line-height: 1.6;
+  padding: 0 6px;
+  border-radius: 999px;
+  color: var(--accent);
+  background: var(--accent-light);
+  animation: or-arrive 0.45s ease-out both;
+}
+
+/* 详情久未返回时的提示行 */
+.or-slow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+
+@keyframes or-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.or-version__sub {
+  display: flex;
+  align-items: center;
+  gap: var(--hs-space-8);
+  flex-wrap: wrap;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-muted);
+}
+
+/* ── 内层面板：只有这里允许圆角 ───────────────────────────────────── */
+.or-panel {
+  margin-top: var(--hs-space-14);
+  padding: var(--hs-space-14) var(--hs-space-16);
+  background: color-mix(in srgb, var(--sidebar-bg) 55%, var(--bg));
+  border-radius: calc(5px * var(--corner-radius-scale));
+}
+
+/* ── 条目 ─────────────────────────────────────────────────────────── */
+/*
+ * 纵向节奏按邻近性来定：条内近、条间远。
+ * 每个条目是一个整体，所以条内只留 4px，条间给到 28px，差出几倍，
+ * 一眼就能看出哪几行属于同一条。
+ *
+ * 条间距写在 .or-item 自身上而不是容器的 gap：AnimatedList 内部会再
+ * 包一层动效元素，容器到条目隔了几层，gap 不一定能落到条目之间。
+ */
+.or-items {
+  margin: 0;
+  padding: 0 0 var(--hs-space-8);
+}
+
+.or-items .or-item {
+  display: grid;
+  gap: var(--hs-space-4);
+  padding-left: var(--hs-space-14);
+  /* 竖线跟着内容走，不额外向下延伸；多出来的长度会被读成属于下一个条目。 */
+  border-left: 2px solid var(--border);
+}
+
+/* 条与条之间。第一条不加，避免顶部多一块空白。 */
+.or-items .or-item + .or-item {
+  margin-top: var(--hs-space-28);
+}
+
+.or-item--high {
+  border-left-color: var(--accent);
+}
+
+/*
+ * 左侧竖线按重要性给色。
+ *
+ * 选择器带上 .or-items 前缀是为了跟上上面那条规则的特异性（两级）：
+ * 只写 .or-item--high 会被 .or-items .or-item 的 border-left 盖掉。
+ */
+.or-items .or-item--high {
+  border-left-color: var(--accent);
+}
+
+/* 次要变更的竖线淡一档，不抢主线的视觉重量。 */
+.or-items .or-item--low {
+  border-left-color: var(--text-muted);
+}
+
+.or-item__head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--hs-space-8);
+  flex-wrap: wrap;
+}
+
+.or-item__title {
+  font-size: 15px;
+  line-height: 1.6;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.or-item__body {
+  font-size: 14px;
+  line-height: 1.8;
+  color: var(--text-light);
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.or-item__details {
+  margin-top: var(--hs-space-2);
+}
+
+.or-item__detail {
+  font-size: 13px;
+  line-height: 1.75;
+  color: var(--text-light);
+  margin: 0 0 var(--hs-space-4);
+  padding-left: var(--hs-space-12);
+  position: relative;
+}
+
+.or-item__detail::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.72em;
+  width: 4px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--text-muted);
+}
+
+/* ── 摘要 ─────────────────────────────────────────────────────────── */
+.or-summary {
+  font-size: 14.5px;
+  line-height: 1.85;
+  color: var(--text-light);
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+/* ── 资产分组 ───────────────────────────────────────────────────── */
+/* 「资产」下面三个平行小节：安装包 / 压缩包 / 清单与校验。
+   每组自带标题、计数与一句用途说明，空组不渲染。 */
+.or-asset-group + .or-asset-group {
+  margin-top: var(--hs-space-16);
+}
+
+.or-asset-group__head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--hs-space-8);
+  flex-wrap: wrap;
+  margin-bottom: var(--hs-space-6);
+  min-width: 0;
+}
+
+.or-asset-group__title {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.or-asset-group__hint {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* 「全部下载」推到这一组标题行的右端。 */
+.or-asset-group__action {
+  margin-inline-start: auto;
+}
+
+.or-assets {
+  display: grid;
+  gap: var(--hs-space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/*
+ * 资产列表逐条进场。
+ *
+ * 它跟着版本切换而更新（切一个版本就整批换掉），硬切会显得生硬。
+ * 只给前几项错开：一份清单能有十几条，全部排开会让最后一条等太久。
+ */
+.or-asset:nth-child(2) {
+  animation-delay: 0.03s;
+}
+.or-asset:nth-child(3) {
+  animation-delay: 0.06s;
+}
+.or-asset:nth-child(4) {
+  animation-delay: 0.09s;
+}
+.or-asset:nth-child(5) {
+  animation-delay: 0.12s;
+}
+.or-asset:nth-child(6) {
+  animation-delay: 0.15s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .or-asset {
+    animation: none;
+  }
+}
+
+.or-asset {
+  display: flex;
+  align-items: center;
+  gap: var(--hs-space-10);
+  min-width: 0;
+  animation: or-arrive 0.3s ease-out both;
+}
+
+.or-asset__row {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--hs-space-10);
+}
+
+/* 文件名占满剩余宽度，过长补省略号。完整名字靠 title 属性在悬停时给出。 */
+.or-asset__file {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text);
+  /* 等宽数字让带版本号的文件名竖着看更整齐。 */
+  font-variant-numeric: tabular-nums;
+}
+
+.or-asset__size {
+  flex: none;
+  /* 宽度按字符数算而不是 em：最长的形如“999 MB”，6 个字符。
+     给多了就是与胶囊之间那道过大的缝，给少了数字左缘会参差。 */
+  min-width: 6ch;
+  text-align: right;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* 大小 + 按钮。大小在左、右对齐靠近按钮，不跟文件名抢宽度。 */
+.or-asset__trailing {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--hs-space-8);
+  text-align: right;
+}
+
+/* 右侧槽位：只负责对齐，宽度由胶囊自己定。 */
+.or-asset__slot {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+/*
+ * 胶囊：四种状态共用的那只壳，宽度固定。
+ *
+ * 宽度不能由内容撑：圆环与“已完成”的自然宽差很多，一撑就四个大小不一的壳。
+ * 高度与圆角对齐 .hs-button（34px / calc(5px * scale)），
+ * 所以和别处的按钮放一起也是同一档尺寸。
+ */
+.or-pill {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* 装得下“圆环 20px + 间距 + 100%”，也装得下“已完成”三个字。
+     算过：20 + 5 + 2.9em(约 35px) ≈ 60px，再加左右内边距 16px = 76px。
+     6.4em（约 77px）刚够，不再放宽：胶囊太宽会把文件名挤窄。 */
+  width: 6.4em;
+  min-height: 34px;
+  padding: 0 var(--hs-space-8);
+  border: 1px solid var(--border);
+  border-radius: calc(5px * var(--corner-radius-scale));
+  background: transparent;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-muted);
+  white-space: nowrap;
+  transition: background var(--duration-fast) var(--ease-out);
+}
+
+/* 已完成：弱一档的底，读作“这事结束了”而不是一个可点的动作。 */
+.or-pill--done {
+  background: color-mix(in srgb, var(--sidebar-bg) 45%, var(--bg));
+}
+
+/* 可点的两种：下载与重试。 */
+button.or-pill--idle,
+button.or-pill--failed {
+  cursor: pointer;
+  color: var(--text);
+}
+
+button.or-pill--idle:hover,
+button.or-pill--failed:hover {
+  background: color-mix(in srgb, var(--sidebar-bg) 55%, var(--bg));
+}
+
+/* ── 下载进度：圆环 ───────────────────────────────────────────── */
+/*
+ * 圆环 + 百分比。
+ *
+ * 圆环 20px 比胶囊的 34px 矮，所以行高由胶囊决定，不会因进度而跳。
+ * 两者加起来的宽度要装进胶囊（width: 5.4em），所以间距只给 5px。
+ */
+.or-ring {
+  display: inline-flex;
+  align-items: center;
+  /* 不留 gap：环与数字直接相接，靠数字自身的最小宽撑开。 */
+  gap: 0;
+  color: var(--text-muted);
+}
+
+/**
+ * 百分比：预留到“100%”的宽度，右对齐。
+ *
+ * 预留宽是为了换位数时胶囊不跳。右对齐让数字紧贴预留区的右缘，
+ * 而右边紧邻的就是胶囊内边距，余量落在左侧与环靠近，视觉上数字是贴着环的。
+ */
+.or-ring__pct {
+  min-width: 2.6em;
+  font-size: 11.5px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.or-ring__svg {
+  flex: none;
+  /* 轨道和进度都从顶开始画，看上去才是“从头开始的规”。 */
+  transform: rotate(-90deg);
+}
+
+.or-ring__track {
+  fill: none;
+  stroke: var(--border);
+  stroke-width: 2;
+}
+
+.or-ring__fill {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-linecap: round;
+  /* 周长在 JS 里按半径算好写进来，这里只负责过渡。 */
+  transition: stroke-dashoffset var(--duration-fast) var(--ease-out);
+}
+
+.or-ring__fill--indeterminate {
+  animation: or-ring-turn 1.4s linear infinite;
+}
+
+@keyframes or-ring-turn {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* ── 提示条 ───────────────────────────────────────────────────────── */
+.or-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--hs-space-8);
+  margin-top: var(--hs-space-12);
+  padding: var(--hs-space-10) var(--hs-space-12);
+  border-radius: calc(5px * var(--corner-radius-scale));
+  background: var(--accent-light);
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: var(--text-light);
+}
+
+.or-notice--warn {
+  background: color-mix(in srgb, var(--coral) 12%, var(--bg));
+  color: var(--text);
+}
+
+/* ── 动效兜底 ─────────────────────────────────────────────────────── */
+/* 宿主控件在系统关掉动效时可能停在初始帧（opacity:0）；这里保证内容最终可见。 */
+@media (prefers-reduced-motion: reduce) {
+  .or-fade[style*="opacity"] {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+/* ── 空态与加载态留白 ─────────────────────────────────────────────── */
+.or-state {
+  display: grid;
+  place-items: center;
+  gap: var(--hs-space-12);
+  padding: var(--hs-space-28) var(--hs-space-18);
+  text-align: center;
+}

@@ -1,0 +1,20 @@
+/*
+ * 两个页面共用的外壳样式；视觉主体来自 hana-card-style.css 的 .hs-page。
+ *
+ * 背景取宿主主背景 --bg，不是卡片底色。卡面现在铺满整个卡体（edge-to-edge），
+ * 用主背景才能和周围界面连成一片。--hs-* 定义在 .hs-page 自己身上，html 拿到
+ * 的是空值，所以 html 要把同样的回退链再写一遍。
+ */
+html {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+}
+
+body.hs-page {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-ui);
+}

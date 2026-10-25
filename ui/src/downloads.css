@@ -1,0 +1,411 @@
+/*
+ * downloads.css — 下载视图的样式。
+ *
+ * 只在这一列里生效（.or-dl 是根）。外层滚动与版心由 releases.css 的
+ * .or-set-body / .or-set-view 给，这里不管高度，只排内容。
+ *
+ * 颜色一律用本 App 已定义的令牌（--text / --text-light / --text-muted /
+ * --border / --bg / --accent / --warn / --danger），不写死色值，也不引用
+ * 不存在的变量——引用一个没定义的变量等于把那条声明丢掉，边框会变成透明的。
+ */
+
+.or-dl {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hs-space-12);
+  padding-bottom: var(--hs-space-16);
+}
+
+/* ---------------------------------------------------------------- 汇总条 */
+
+/*
+ * 顶部一条：左边读数，右边总连接数。
+ * 它不跟着列表滚：连接数是常看的，滚走了就得往上翻。
+ */
+.or-dl-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--hs-space-10);
+  padding: var(--hs-space-10) var(--hs-space-12);
+  border: 1px solid var(--border);
+  border-radius: var(--hs-space-8);
+  background: color-mix(in srgb, var(--sidebar-bg) 55%, var(--bg));
+}
+
+.or-dl-summary__readings {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--hs-space-12);
+  min-width: 0;
+}
+
+.or-dl-summary__speed {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--hs-space-6);
+  font-size: 1.05rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.or-dl-summary__unit {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--text-light);
+}
+
+.or-dl-summary__stat {
+  font-size: 0.82rem;
+  color: var(--text-light);
+  font-variant-numeric: tabular-nums;
+}
+
+.or-dl-summary__stat strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.or-dl-summary__control {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--hs-space-8);
+}
+
+/* 显示方式切换用 SDK 的 Tabs（segmented），这里只管它在汇总条里的位置。 */
+.or-dl-modes {
+  flex: none;
+}
+
+.or-dl-summary__label {
+  font-size: 0.82rem;
+  color: var(--text-light);
+  cursor: help;
+}
+
+/* 步进器：÷2 / 数值 / ×2。数值固定宽度，点一下整块不抖。 */
+.or-dl-steps {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  border: 1px solid var(--border);
+  border-radius: var(--hs-space-6);
+  padding: 1px;
+  background: var(--bg);
+}
+
+.or-dl-steps__value {
+  min-width: 2.2em;
+  text-align: center;
+  font-size: 0.86rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+/* 总连接数的数值：点 ×2/÷2 时宽度不变，整行不跟着动。 */
+.or-dl-steps__value {
+  min-width: 2.6em;
+  text-align: center;
+  font-size: 0.86rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+/* ---------------------------------------------------------------- 任务列表 */
+
+.or-dl-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hs-space-10);
+}
+
+/*
+ * 任务卡。
+ *
+ * 每张卡都要有自己的边界：边框 + 底色 + 左侧状态色条。只靠间距分不出
+ * 「这是另一条任务」，尤其几条同时在下的时候读起来像一张大表。
+ */
+.or-dl-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hs-space-8);
+  padding: var(--hs-space-12) var(--hs-space-14);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--text-muted, #9a9a9a);
+  border-radius: var(--hs-space-8);
+  /* 底色比卡面略深一点，卡片才浮得出来。混 --sidebar-bg 而不是写死灰值，
+     深色模式下自动跟着翻。 */
+  background: color-mix(in srgb, var(--sidebar-bg) 40%, var(--bg));
+}
+
+.or-dl-row--running {
+  border-left-color: var(--accent, #52765c);
+}
+
+.or-dl-row--paused,
+.or-dl-row--queued {
+  border-left-color: var(--warn, #a97b32);
+}
+
+.or-dl-row--completed {
+  border-left-color: var(--accent, #52765c);
+}
+
+.or-dl-row--failed {
+  border-left-color: var(--danger, #9b534b);
+}
+
+.or-dl-row--canceled {
+  opacity: 0.72;
+}
+
+.or-dl-row__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--hs-space-10);
+}
+
+/* 文件名可能很长：留一行，超出省略，完整名字在 title 里。 */
+.or-dl-row__title {
+  display: flex;
+  align-items: baseline;
+  gap: var(--hs-space-8);
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.or-dl-row__name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.or-dl-row__tag {
+  flex: none;
+  font-size: 0.74rem;
+  color: var(--text-light);
+  font-variant-numeric: tabular-nums;
+}
+
+.or-dl-row__state {
+  flex: none;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-light);
+  white-space: nowrap;
+}
+
+.or-dl-row__state--running,
+.or-dl-row__state--completed {
+  color: var(--accent, #52765c);
+}
+
+.or-dl-row__state--failed {
+  color: var(--danger, #9b534b);
+}
+
+.or-dl-row__state--paused,
+.or-dl-row__state--queued {
+  color: var(--warn, #a97b32);
+}
+
+/* 进度条：细一点，别抢下面的读数。
+   高度与分片视图保持一致：两种显示方式切换时不应该让行高跳动。 */
+.or-dl-bar {
+  position: relative;
+  display: flex;
+  height: 6px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--text) 12%, transparent);
+  overflow: hidden;
+}
+
+/*
+ * 连续视图里「正在被接管」的段。
+ *
+ * 不按分片真实位置铺，而是从左往右接在已下量后面——这个视图说的是
+ * “一共下了多少”，不是“文件哪些区间写过了”。
+ *
+ * 段与段之间不加竖线：它们是一条连续进度里的若干在用连接，
+ * 画成分隔反而像另一层数据结构。
+ */
+.or-dl-bar__busy {
+  flex: none;
+  height: 100%;
+  background: color-mix(in srgb, var(--text) 30%, transparent);
+}
+
+/* 刚接手、还没写出字节的片：给一条最细的可见宽度，代表这条连接在工作。 */
+.or-dl-bar__busy.is-idle {
+  width: 3px;
+  opacity: 0.7;
+}
+
+/*
+ * 分片可视化。
+ *
+ * 外面一层是相对定位的轨道，里面每片绝对定位到自己的文件位置（left/width 都是百分比）。
+ * 所以它不随片数变高，也不因二分成两三百片而换行——片只会变细，位置始终对得上。
+ *
+ * 配色要跟连续视图一致：底色用同一个 12%，否则切过去会觉得整条变深了。
+ */
+.or-dl-segbar {
+  position: relative;
+  height: 6px;
+  border-radius: 3px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--text) 12%, transparent);
+}
+
+.or-dl-segbar__track {
+  position: absolute;
+  inset: 0;
+}
+
+.or-dl-segbar__piece {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  /* 不留缝：相邻的两片要连成一条。之前用 border-right 分隔，而片宽小时
+     那道缝几乎和片一样宽，整条看起来就是一堆竖纹而不是一段进度。 */
+  box-sizing: border-box;
+  /* 未被接管的片与连续视图的底色完全相同，整条才不会变深。 */
+  background: transparent;
+}
+
+/* 已写完。 */
+.or-dl-segbar__piece.is-done {
+  background: var(--accent, #52765c);
+  /* 百分比宽度在像素层面会留下亚像素缝，相邻两片之间会露出轨道底色。
+     向右撑开 1px 盖住它。阴影用同色，盖上去看不出。 */
+  box-shadow: 1px 0 0 0 var(--accent, #52765c);
+}
+
+/* 正在下：已写部分用强调色，未写部分深一档，一眼看出这条正在被接管。 */
+.or-dl-segbar__piece.is-live {
+  background: linear-gradient(
+    to right,
+    var(--accent, #52765c) 0,
+    var(--accent, #52765c) var(--piece-fill, 0%),
+    color-mix(in srgb, var(--text) 26%, transparent) var(--piece-fill, 0%),
+    color-mix(in srgb, var(--text) 26%, transparent) 100%
+  );
+}
+
+/* 已暂停/已取消：保留分段形状，但颜色转淡，一眼看出“没在动”。 */
+.or-dl-row--paused .or-dl-segbar__piece.is-live,
+.or-dl-row--canceled .or-dl-segbar__piece.is-live {
+  background: color-mix(in srgb, var(--warn, #a97b32) 45%, transparent);
+}
+
+.or-dl-row--failed .or-dl-segbar__piece.is-done {
+  background: var(--danger, #9b534b);
+}
+
+.or-dl-bar__fill {
+  flex: none;
+  height: 100%;
+  /* 圆角只留给外层轨道。内部各段自己再圆一次，拼起来就会看到接缝处
+     多出两个小圆角，像被切开了一样。 */
+  background: var(--accent, #52765c);
+  transition: width 300ms ease;
+}
+
+.or-dl-row--paused .or-dl-bar__fill,
+.or-dl-row--queued .or-dl-bar__fill {
+  background: var(--warn, #a97b32);
+}
+
+.or-dl-row--failed .or-dl-bar__fill {
+  background: var(--danger, #9b534b);
+}
+
+/* 读数与动作同一行：左读数、右按钮。按钮单独占一行会白费半张卡的高度。 */
+.or-dl-row__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--hs-space-10);
+  min-height: 28px;
+}
+
+.or-dl-row__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--hs-space-10);
+  font-size: 0.78rem;
+  color: var(--text-light);
+  font-variant-numeric: tabular-nums;
+  min-width: 0;
+}
+
+.or-dl-row__speed {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.or-dl-row__conns {
+  opacity: 0.85;
+}
+
+/* 错误别整段铺开，一行装不下就省略；完整信息在 title 里。 */
+.or-dl-row__error {
+  color: var(--danger, #9b534b);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+/* 按钮不换行、不被读数挤扁。 */
+.or-dl-row__actions {
+  display: flex;
+  flex: none;
+  gap: var(--hs-space-6);
+  align-items: center;
+}
+
+/* 窄卡时让汇总条竖过来，按钮不至于把文件名挤没。 */
+/* 下载页的任务卡：逐条错开进场，新出现的任务也会有这一下。 */
+.or-dl-list > .or-dl-row {
+  animation: or-arrive 0.34s ease-out both;
+}
+.or-dl-list > .or-dl-row:nth-child(2) {
+  animation-delay: 0.04s;
+}
+.or-dl-list > .or-dl-row:nth-child(3) {
+  animation-delay: 0.08s;
+}
+.or-dl-list > .or-dl-row:nth-child(4) {
+  animation-delay: 0.12s;
+}
+.or-dl-list > .or-dl-row:nth-child(5) {
+  animation-delay: 0.16s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .or-dl-list > .or-dl-row {
+    animation: none;
+  }
+}
+
+@media (max-width: 520px) {
+  .or-dl-summary {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .or-dl-summary__control {
+    justify-content: space-between;
+  }
+}

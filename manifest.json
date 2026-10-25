@@ -1,0 +1,57 @@
+{
+  "manifestVersion": 2,
+  "id": "oh-releases",
+  "name": "OH Releases",
+  "version": "0.1.0",
+  "description": "订阅 HanaAgent 的 Release，新版本出现就提醒你。",
+  "entry": "bin/app.mjs",
+  "icon": "icon.svg",
+  "minAppVersion": "1.1.7-beta",
+  "capabilities": [
+    "app/tools.expose-to-model",
+    "app/tasks.manage",
+    "app/notifications.show",
+    "app/runtime.execute",
+    "app/runtime.local-machine",
+    "app/runtime.network",
+    "app/resources.read"
+  ],
+  "network": {
+    "allowedHosts": [
+      "github.com",
+      "*.githubusercontent.com",
+      "ghproxy.net",
+      "gh-proxy.com",
+      "ghfast.top",
+      "gh.llkk.cc"
+    ],
+    "methods": [
+      "GET",
+      "HEAD"
+    ],
+    "defaultTimeoutMs": 30000,
+    "maxResponseBytes": 8388608
+  },
+  "contributes": {
+    "cards": [
+      {
+        "id": "releases",
+        "title": "OH Releases",
+        "description": "HanaAgent 各版本更新内容，一版一页，最新的在前。",
+        "route": "/releases.html",
+        "realization": "page",
+        "cardForm": "edge-to-edge",
+        "titleMode": "hide",
+        "fpFullPanel": true,
+        "siteNavEntry": true,
+        "functionPanel": {
+          "id": "versions",
+          "label": "版本"
+        },
+        "face": {
+          "image": "assets/cover.svg"
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,15 @@
+# 单包仓库：源码在 src/，交付树由 scripts/build-app.mjs 组装到 dist/。
+packages:
+  - "."
+
+# 本地 vendor 的官方 SDK（非 registry 包）。四个 tgz 全部映射到本地：任何对 @hana/* 的依赖
+# （直接或传递）都解析到 vendor（版本 0.0.0），不去 registry 取——registry 上没有，否则 404。
+#   - app-sdk：Node 侧 App 契约（defineApp 等；服务端 bundle 构建期内联）
+#   - plugin-sdk：浏览器侧（卡片页面用；ui bundle 构建期内联）
+#   - plugin-protocol：plugin-sdk 的声明依赖（仅解析用）
+#   - plugin-components：设置面公共组件（自绘设置页用）
+overrides:
+  "@hana/app-sdk": "file:vendor/hana-app-sdk/hana-app-sdk.tgz"
+  "@hana/plugin-sdk": "file:vendor/hana-app-sdk/hana-plugin-sdk-0.0.0.tgz"
+  "@hana/plugin-protocol": "file:vendor/hana-app-sdk/hana-plugin-protocol-0.0.0.tgz"
+  "@hana/plugin-components": "file:vendor/hana-app-sdk/hana-plugin-components-0.0.0.tgz"

@@ -1,0 +1,11 @@
+# 统一用 LF。
+#
+# 这份仓库在 Windows 上开发、在 Linux 上跑 CI。默认的 core.autocrlf 会在提交时把
+# 文本文件的换行改写成 CRLF，于是 CI 里拿到的 LF 文件与本地不同——曾经出现过
+# shell 脚本因此带上 \r 而在 Linux 上报「解释器不存在」。
+* text=auto eol=lf
+
+# 二进制产物不做换行处理，否则 tgz 会被改坏。
+*.tgz binary
+*.png binary
+*.zip binary

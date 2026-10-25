@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="OH Releases">
+  <defs>
+    <linearGradient id="or-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#6b4530"/>
+      <stop offset="1" stop-color="#3d2718"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="6" y="6" width="116" height="116" rx="28" fill="url(#or-bg)"/>
+
+  <!-- 下载箭头：竖干 + 实心三角头，实心才立得住 -->
+  <path d="M64 24 L64 60" fill="none" stroke="#fff6ec" stroke-width="10" stroke-linecap="round"/>
+  <polygon points="46 55, 82 55, 64 79" fill="#fff6ec"/>
+
+  <!-- 托底线：接住落下来的东西 -->
+  <path d="M34 92 L94 92" fill="none" stroke="#f0a868" stroke-width="9" stroke-linecap="round"/>
+
+  <!-- 后面还有别的版本 -->
+  <path d="M50 107 L78 107" fill="none" stroke="#9c6a45" stroke-width="8" stroke-linecap="round"/>
+</svg>
