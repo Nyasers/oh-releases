@@ -100,6 +100,38 @@ jobs:
           fi
           echo "摘要一致：$ACTUAL"
 
+          # 市场投稿用的 entry：市场按它登记的 sha256 与 tag 取包，字段漂了会被拒。
+          ENTRY_JSON=$(ls releases/*.entry.json | head -n1)
+          test -n "$ENTRY_JSON"
+          echo "entry = $ENTRY_JSON"
+          node -e '
+            const fs = require("node:fs");
+            const entry = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+            const archive = entry.archive || {};
+            if (entry.kind !== "app") throw new Error("entry.kind 应为 app：" + entry.kind);
+            if (entry.id !== "oh-releases") throw new Error("entry.id 不对：" + entry.id);
+            if (!entry.publisher) throw new Error("entry 缺 publisher");
+            if (!String(archive.url || "").startsWith("{{BASE_URL}}/")) {
+              throw new Error("archive.url 必须以 {{BASE_URL}}/ 开头：" + archive.url);
+            }
+            if (!entry.icon || !/^data:image\/png;base64,/.test(entry.icon)) {
+              throw new Error("entry.icon 必须是 PNG data URL");
+            }
+            console.log("entry 字段就位，sha256 = " + archive.sha256);
+          ' "$ENTRY_JSON"
+
+          # entry 里记的摘要/大小必须就是刚出的这个 zip。
+          node -e '
+            const fs = require("node:fs");
+            const crypto = require("node:crypto");
+            const entry = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+            const zip = fs.readFileSync(process.argv[2]);
+            const sha = crypto.createHash("sha256").update(zip).digest("hex");
+            if (entry.archive.sha256 !== sha) throw new Error("entry.archive.sha256 与 zip 不符");
+            if (entry.archive.size !== zip.length) throw new Error("entry.archive.size 与 zip 不符");
+            console.log("entry 与 zip 一致");
+          ' "$ENTRY_JSON" "$ZIP"
+
       - uses: actions/upload-artifact@v5
         with:
           name: package
@@ -108,4 +140,5 @@ jobs:
           path: |
             releases/*.zip
             releases/*.sha256
+            releases/*.entry.json
           if-no-files-found: error

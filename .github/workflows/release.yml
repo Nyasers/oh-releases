@@ -73,7 +73,7 @@ jobs:
         run: |
           set -euo pipefail
           shopt -s nullglob
-          FILES=(releases/*.zip releases/*.sha256)
+          FILES=(releases/*.zip releases/*.sha256 releases/*.entry.json)
           if [ ${#FILES[@]} -eq 0 ]; then
             echo "::error::没有找到待发布的产物"
             exit 1
@@ -109,8 +109,8 @@ jobs:
           cat /tmp/assets.txt
 
           ZIP=$(ls releases/*.zip | head -n1 | xargs basename)
-          SHA="$ZIP.sha256"
-          for want in "$ZIP" "$SHA"; do
+          ENTRY=$(ls releases/*.entry.json | head -n1 | xargs basename)
+          for want in "$ZIP" "$ZIP.sha256" "$ENTRY"; do
             if ! grep -qxF "$want" /tmp/assets.txt; then
               echo "::error::release 里缺资产 $want"
               exit 1

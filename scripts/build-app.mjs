@@ -145,6 +145,11 @@ async function main() {
   total += copyInto(path.join(ROOT, "assets", iconName), path.join(DIST, iconName));
   log("manifest.json + " + iconName + " 就位");
 
+  // 许可证进包：MPL-2.0 要求随分发提供许可文本。
+  if (existsSync(path.join(ROOT, "LICENSE"))) {
+    total += copyInto(path.join(ROOT, "LICENSE"), path.join(DIST, "LICENSE"));
+  }
+
   // 3) 受管 runtime：下载服务与连接池是独立入口，由 ctx.runtime.start 直接拉起，不进 app.mjs。
   mkdirSync(path.join(DIST, "runtime"), { recursive: true });
   for (const name of ["downloader.mjs", "service.mjs", "pool.mjs"]) {

@@ -5,7 +5,8 @@
  * （黑名单只列它记得的东西，源码树里多出什么就漏什么）。出包前无条件重跑一次
  * build-app.mjs，所以"包里的东西必然等于当前源码的产物"不依赖调用方记得先构建。
  *
- * 产物落 releases/<id>-v<version>.zip，同名 .sha256 存小写十六进制摘要。
+ * 产物落 releases/<id>-v<version>.zip，同名 .sha256 存小写十六进制摘要，
+ * 以及市场投稿用的 <kind>-<id>-<version>.entry.json。
  * 版本单一事实源是 manifest.json，并与 package.json 对齐（不一致直接拒包）。
  *
  * 不随包：LICENSE / NOTICE / README / scripts/ / src/ / ui/src/ ——它们不在 dist/ 里。
@@ -197,7 +198,10 @@ function main() {
     "manifest.json",
     manifest.entry,
     manifest.icon,
+    "LICENSE",
     "runtime/downloader.mjs",
+    "runtime/service.mjs",
+    "runtime/pool.mjs",
     "ui/releases.html",
     "ui/releases.bundle.js",
     "ui/releases.bundle.css",
@@ -216,6 +220,44 @@ function main() {
   log("出包：" + path.relative(ROOT, zipPath).replace(/\\/g, "/"));
   log("  条目 " + entries.length + " · 大小 " + (bytes.length / 1024).toFixed(1) + " KB");
   log("  sha256 " + digest);
+
+  // 市场投稿用的 entry。archive.url 恒为 `{{BASE_URL}}/<zip 名>`：同步器靠这个前缀
+  // 取出 zip 资产名、再去 Release 资产里找同名文件。写绝对地址会让投稿在校验阶段直接失败。
+  const entryPath = path.join(outDir, "app-" + manifest.id + "-" + manifest.version + ".entry.json");
+  const entry = {
+    kind: "app",
+    id: manifest.id,
+    name: manifest.name,
+    publisher: pkg.author,
+    description: manifest.description,
+    version: manifest.version,
+    permissions: (manifest.capabilities || []).map((capability) => ({ capability })),
+  };
+  if (manifest.minAppVersion) entry.compatibility = { minAppVersion: manifest.minAppVersion };
+  if (pkg.license) entry.license = pkg.license;
+
+  // icon 要 256×256 PNG 的 data URL。图标是 SVG，光栅化结果随仓库提交，
+  // 打包只读文件：CI 里没有完整宿主，也就没有 sharp。
+  const iconPng = path.join(ROOT, "assets", "icon-256.png");
+  if (existsSync(iconPng)) {
+    const png = readFileSync(iconPng);
+    if (png[0] === 0x89 && png[1] === 0x50 && png[2] === 0x4e && png[3] === 0x47) {
+      entry.icon = "data:image/png;base64," + png.toString("base64");
+    } else {
+      log("  警告：assets/icon-256.png 不是 PNG，entry 里不带 icon");
+    }
+  } else {
+    log("  警告：缺 assets/icon-256.png（跑 node scripts/make-icon-png.mjs），entry 里不带 icon");
+  }
+
+  entry.archive = {
+    url: "{{BASE_URL}}/" + zipName,
+    sha256: digest,
+    size: bytes.length,
+    format: "zip",
+  };
+  writeFileSync(entryPath, JSON.stringify(entry, null, 2) + "\n");
+  log("  entry " + path.basename(entryPath));
 }
 
 main();

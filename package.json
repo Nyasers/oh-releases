@@ -1,8 +1,9 @@
 {
   "name": "oh-releases",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "license": "MPL-2.0",
+  "author": "Nyasers",
   "packageManager": "pnpm@11.28.5",
   "type": "module",
   "engines": {
