@@ -934,6 +934,20 @@ export default defineApp(async (sdk) => {
     }
   };
 
+  /**
+   * 工具返回值要包成宿主认的形状。
+   *
+   * 宿主只把返回值里的 `content` 交给模型，返回别的字段等于什么都没说：
+   * 传 `{ ok, items }` 这样的裸业务对象，模型侧拿到的是一次空调用。
+   * 契约（APPS.md「完整最小示例」）写的形状是
+   * `{ content: [{ type: "text", text }] }`，所以这里把业务数据序列化成文本，
+   * 同时原样留在 `details` 里给宿主和调用方读。
+   */
+  const toolResult = (payload) => ({
+    content: [{ type: "text", text: JSON.stringify(payload, null, 2) }],
+    details: payload,
+  });
+
   await registerTool({
     name: "get_releases",
     description:
@@ -951,7 +965,7 @@ export default defineApp(async (sdk) => {
       const limit = Math.min(50, Math.max(1, toInteger(input.limit, 10)));
       const offset = Math.max(0, toInteger(input.offset, 0));
       const page = store.listVersions({ limit, offset });
-      return {
+      return toolResult({
         ok: true,
         total: page.total,
         limit: page.limit,
@@ -966,7 +980,7 @@ export default defineApp(async (sdk) => {
           counts: item.counts,
           itemCount: item.itemCount,
         })),
-      };
+      });
     },
   });
 
@@ -984,7 +998,8 @@ export default defineApp(async (sdk) => {
     async execute(args) {
       const input = args && typeof args === "object" ? args : {};
       const startTag = typeof input.tag === "string" && input.tag ? input.tag : null;
-      return startBackfillJob({ startTag, source: "tool" });
+      const started = await startBackfillJob({ startTag, source: "tool" });
+      return toolResult(started);
     },
   });
 
